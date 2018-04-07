@@ -1,23 +1,35 @@
 import {h, render, Component} from 'preact'
 import copyText from 'copy-text-to-clipboard'
 import * as diagram from '../diagram'
+import {getId} from '../helper'
 
 import Grid from './Grid'
 import Properties from './Properties'
 import Toolbox, {Button, Separator} from './Toolbox'
 
-export default class App extends Component {
-    constructor() {
-        super()
-
-        this.state = {
+let startState = () => {
+    return {
             tool: 'pan',
             cellSize: 130,
             selectedEdge: null,
             confirmCodeCopy: false,
             confirmLinkCopy: false,
-            diagram: {nodes: [], edges: []}
-        }
+        diagram: {nodes: [], edges: []} };
+};
+
+let theStartState = {
+            tool: 'pan',
+            cellSize: 130,
+            selectedEdge: null,
+            confirmCodeCopy: false,
+            confirmLinkCopy: false,
+        diagram: {nodes: [], edges: []} };
+
+export default class App extends Component {
+    constructor() {
+        super()
+
+        this.state = theStartState;
 
         // Try to load a diagram from the hash if given
 
@@ -148,6 +160,35 @@ export default class App extends Component {
         })
     }
 
+    clear = () => {
+        this.setState((prevState, props) => {
+            return startState();
+        }); 
+    }
+
+    duplicate = () => {
+        let oldNodes = this.state.diagram.nodes.slice();
+        let oldEdges = this.state.diagram.edges.slice();
+        let idMap = [];
+        let newNodes = oldNodes.map((node) => {
+            let newId = getId();
+            idMap[node.id] = newId;
+            return {
+                id: newId,
+                position: [node.position[0] + 1, node.position[1] + 1],
+                value: node.value
+            };
+        });
+        let newEdges = oldEdges.map((edge) => {
+            return {
+                from: idMap[edge.from],
+                to: idMap[edge.to]
+            };
+        });
+        
+        this.setState({diagram: {nodes: oldNodes.concat(newNodes), edges: oldEdges.concat(newEdges) }})
+    }
+
     handleEdgeClick = evt => {
         this.setState({selectedEdge: this.state.selectedEdge === evt.edge ? null : evt.edge})
     }
@@ -213,6 +254,7 @@ export default class App extends Component {
     }
 
     render() {
+        console.log(this.state);
         return <div id="root">
             <Grid
                 cellSize={this.state.cellSize}
@@ -247,6 +289,18 @@ export default class App extends Component {
                     name="Arrow Tool (Ctrl)"
                     onClick={this.handleToolClick('arrow')}
                 />
+
+               <Separator/>
+               <Button
+                    icon="./img/properties/trash.svg"
+                    name="Clear"
+                    onClick={this.clear}
+               />
+               <Button
+                    icon="./img/tools/arrow.svg"
+                    name="Duplicate"
+                    onClick={this.duplicate}
+               />
 
                 <Separator/>
 
